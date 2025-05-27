@@ -1,2 +1,12 @@
-# contactspace
-A SDK to interact with the telefundraising software ContactSpace's API
+# contact_space
+
+An SDK to interact with the ContactSpace REST APi
+
+# How to install
+
+Installed via pip:
+
+pip install contact_space
+
+# Features
+
