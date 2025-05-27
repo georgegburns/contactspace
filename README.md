@@ -15,6 +15,7 @@ pip install contact_space
 Handles authorisation check and batches requests to meet API requirements
 
 Stable endpoints:
+
     - create datasets
     
     - insert records into datasets/with callback/as next
@@ -22,4 +23,5 @@ Stable endpoints:
     - get initiatives/users/outcomes/callids/records
 
 Upcoming:
+
     - update record/outcome/value
