@@ -8,7 +8,7 @@ Documentation of API: https://documenter.getpostman.com/view/14510675/UVJhEabw#a
 
 Installed via pip:
 
-pip install contact_space
+    pip install contact_space
 
 
 # Features
