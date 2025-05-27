@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
    name="contact_space",
-   version="1.0",
+   version="0.0.1",
    description="SDK to interact with the ContactSpace REST API",
    author="George Burns",
    author_email="mrgeorgegburns@gmail.com",
