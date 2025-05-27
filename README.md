@@ -16,14 +16,66 @@ Installed via pip:
 # Features
 Handles authorisation check and batches requests to meet API requirements
 
-Stable endpoints:
+Example authentication
 
-    - create datasets
+    from contact_space import ContactSpace
     
-    - insert records into datasets/with callback/as next
+    api_key = "EXAMPLE_API_KEY"
+    url = "https://ukapithunder.makecontact.space/" # Update to region specific URL
     
-    - get initiatives/users/outcomes/callids/records
+    auth = ContactSpace(api_key, url)
 
-Upcoming:
+Stable methods:
+
+    - .create_call_api() 
+        works with endpoints:
+            - CreateDataSet
+            - InsertRecord
+            - InsertNextRecord
+            - InsertRecordWithCallback
+
+    - .get_call_api()
+        works with endpoints:
+            - GetUsers
+            - GetAgentStatus
+            - GetInitiatives
+            - GetOutcome
+            - GetData
+            - GetDataWithAgent
+            - GetCallIDs
+
+    - .get_users()
+        returns users and agents
+
+    - .get_user_status()
+        returns status of passed userid
+
+    - .get_initiatives()
+        returns initiatives
+
+    - .get_outcomes()
+        returns outcomes for a passed initiativeid
+
+    - .get_data()
+        returns record data across a given period for a provided invitiative, with or without agent
+
+    - .create_datasets()
+        creates a series of datasets to be uploaded into
+
+    - .create_records()
+        uploads records into a passed datasetid
+
+    - .get_callids()
+        gets callids across a given period
+
+    - .get_records_from_callids()
+        gets record data from passed callids
+
+    - .get_records()
+        gets records across a given period regardless of initiative
+    
+
+Upcoming methods:
 
     - update record/outcome/value
+
