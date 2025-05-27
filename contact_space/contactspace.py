@@ -73,7 +73,7 @@ class ContactSpace():
                     "count" : 1,
                     "returned_count" : 1,
                     "errors" : []}
-        successes.extend(response.get("info"))
+        successes.extend([response.get("info")])
 
         params.pop(0)
 
