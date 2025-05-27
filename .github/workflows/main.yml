@@ -1,9 +1,8 @@
 name: Publish to PyPI
 
 on:
-  push:
-    tags:
-      - 'v*'  # Matches v1.0.0, v2.3.1, etc.
+  release:
+    types: [published]
 
 permissions:
   id-token: write  # Required for OIDC
