@@ -54,54 +54,62 @@ class ContactSpace():
         
         """
         Checks._type_check(ContactSpace.create_call_api, locals())
-        session = reqs.Session()
         successes = []
         errors = []
 
         url = self.base_url + func
-        header = self.auth.copy()
-
+        headers = self.auth.copy()
         total_count = len(params)
-        
-        response = session.post(url, headers=header, params=params[0], timeout=self.timeout).json()
-        if response is None:
-            return {"No Data" : {func : params}}
-        elif "error" in response:
-            return response
-        elif total_count == 1:
-            return {"response" : response.get("info"),
+        params_to_pass = params.copy()
+
+        def _post_request(param: dict) -> dict:
+            with reqs.Session() as session:
+                try:
+                    # Usually POST JSON payload in body, not URL params for APIs
+                    resp = session.post(url, headers=headers, data=param, timeout=self.timeout)
+                    resp.raise_for_status()
+                    res_json = resp.json()
+                except reqs.RequestException as e:
+                    return {"Error": f"Request failed: {e} for params: {param}"}
+                except ValueError:
+                    return {"Error": f"Invalid JSON response for params: {param}"}
+
+                # If response indicates error, propagate it
+                if "error" in res_json:
+                    return {"Error": res_json.get("error")}
+                
+                return res_json.get("info", {"Error": f"Unexpected response format: {res_json}"})
+
+        if total_count == 0:
+            return {"response" : [],
                     "count" : 1,
                     "returned_count" : 1,
                     "errors" : []}
-        successes.extend([response.get("info")])
 
-        params.pop(0)
+        first_response = _post_request(params_to_pass[0])
+        if "Error" in first_response:
+            return first_response
+        if total_count == 1:
+            return {
+                "response": first_response,
+                "count": 1,
+                "returned_count": 1,
+                "errors": []
+            }
 
-        def _handle_calls(param : dict) -> dict:
-            """Handle batching multiple callids
+        successes.append(first_response)
 
-            Args:
-                param (dict) : the params to pass to request
+        remaining_params = params_to_pass[1:]
+        batch_size = self.call_limit
 
-            Returns:
-                the records key value pair from the json
-            """
-            Checks._type_check(_handle_calls, locals())
-            local_params = param.copy()
-            res = session.post(url, headers=header, params=param).json()
-            responses = res.get("info", {"Error" : 
-                                        f"{str(local_params)} - {str(res)}"})
-            return responses
-
-        rate = self.call_limit
-
-        for i in range(0, len(params)+1, rate):
-            batch = params[i:i + rate]
+        for i in range(0, len(remaining_params)+1, batch_size):
+            batch = remaining_params[i:i + batch_size]
             with ThreadPoolExecutor() as executor:
-                results = list(executor.map(_handle_calls, batch))
+                results = list(executor.map(_post_request, batch))
                 successes.extend([response for response in results if "Error" not in response])
                 errors.extend([response for response in results if "Error" in response])
                 time.sleep(self.call_time)
+    
         return {"response" : successes,
                 "count" : total_count,
                 "returned_count" : len(successes),
@@ -393,6 +401,8 @@ class ContactSpace():
         """
         Checks._type_check(ContactSpace.create_records, locals())
         func = "InsertRecord"
+        data = data.fillna("").copy()
+        data = data.map(str).copy()
         if bool(userid):
             func = "InsertNextRecord"
         if bool(callback) and bool(userid):
@@ -472,14 +482,13 @@ class ContactSpace():
         elif not isinstance(callids, list):
             raise TypeError("callids must be in a list")
 
-        session = reqs.Session()
         url = self.base_url + "GetRecord"
         header = self.auth
         params = {"callid" : "",
-                  "module" : "data"}
+                "module" : "data"}
         total_count = len(callids)
 
-        def _handle_multiplerecords(callid : int) -> dict:
+        def _handle_multiplerecords(callid : str) -> dict:
             """Handle batching multiple callids
 
             Args:
@@ -488,11 +497,19 @@ class ContactSpace():
             Returns:
                 the records key value pair from the json
             """
-            Checks._type_check(_handle_multiplerecords, locals())
-            params["callid"] = str(callid)
-            res = session.post(url, headers=header, params=params).json()
-            records = res.get("records", {"Error" : str(callid)})
-            return records
+            local_params = params
+            try:
+                with reqs.Session() as session:
+                    Checks._type_check(_handle_multiplerecords, locals())
+                    local_params["callid"] = str(callid)
+                    res = session.post(url, headers=header, params=local_params)
+                    res.raise_for_status()
+                    res_json = res.json()
+            except reqs.RequestException as e:
+                return {"Error": f"Request failed: {e} for params: {local_params}"}
+            except ValueError:
+                return {"Error": f"Invalid JSON response for params: {local_params}"}
+            return res_json.get("records", {"Error" : str(callid)})
 
         rate = self.call_limit
         successes = []
@@ -530,8 +547,8 @@ class ContactSpace():
         Checks._type_check(ContactSpace.get_records, locals())
         no_pred_ids = self.get_callids(fromdate, todate, predictive=0).get("response")
         pred_ids = self.get_callids(fromdate, todate, predictive=1).get("response")
-        list_predictive = [rep_dict.get("Id") for rep_dict in no_pred_ids if "Id" in rep_dict]
-        list_non_predictive = [rep_dict.get("Id") for rep_dict in pred_ids if "Id" in rep_dict]
+        list_predictive = [rep_dict.get("Id") for rep_dict in pred_ids if "Id" in rep_dict]
+        list_non_predictive = [rep_dict.get("Id") for rep_dict in no_pred_ids if "Id" in rep_dict]
         list_predictive.extend(list_non_predictive)
         all_ids = list(set(list_predictive))
 
