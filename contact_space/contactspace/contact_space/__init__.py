@@ -1,1 +1,0 @@
-from .contactspace import ContactSpace
