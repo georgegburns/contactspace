@@ -53,59 +53,76 @@ class ContactSpace():
              "errors" : identified_errors}
         
         """
+        if params is None:
+            params = [{}]
+
         Checks._type_check(ContactSpace.create_call_api, locals())
-        session = reqs.Session()
-        successes = []
-        errors = []
 
         url = self.base_url + func
         header = self.auth.copy()
-
         total_count = len(params)
-        
-        response = session.post(url, headers=header, params=params[0], timeout=self.timeout).json()
-        if response is None:
-            return {"No Data" : {func : params}}
-        elif "error" in response:
-            return response
-        elif total_count == 1:
-            return {"response" : response.get("info"),
-                    "count" : 1,
-                    "returned_count" : 1,
-                    "errors" : []}
-        successes.extend([response.get("info")])
 
-        params.pop(0)
+        def _handle_calls(param: dict) -> dict:
+            """Handle a single API call with given parameters"""
 
-        def _handle_calls(param : dict) -> dict:
-            """Handle batching multiple callids
+            with reqs.Session() as session:
+                Checks._type_check(_handle_calls, locals())
+                local_params = param.copy()
+                try:
+                    response = session.post(url, headers=header, params=local_params, timeout=self.timeout)
+                    response.raise_for_status()
+                    res_json = response.json()
+                except Exception as ex:
+                    return {"Error": f"Request failed: {ex}"}
+                
+                return res_json.get("info", {
+                    "Error": f"No 'info' key in response. Params: {local_params}, Full response: {res_json}"
+                })
 
-            Args:
-                param (dict) : the params to pass to request
+        successes = []
+        errors = []
 
-            Returns:
-                the records key value pair from the json
-            """
-            Checks._type_check(_handle_calls, locals())
-            local_params = param.copy()
-            res = session.post(url, headers=header, params=param).json()
-            responses = res.get("info", {"Error" : 
-                                        f"{str(local_params)} - {str(res)}"})
-            return responses
+        # Process first param (or all if only one)
+        first_param = params.pop(0) if params else {}
+        first_response = _handle_calls(first_param)
 
+        if "Error" in first_response:
+            errors.append(first_response)
+        else:
+            successes.append(first_response)
+
+        if total_count == 1:
+            # Only one call requested, return immediately
+            return {
+                "response": successes,
+                "count": total_count,
+                "returned_count": len(successes),
+                "errors": errors
+            }
+
+        # Batch remaining params respecting call_limit (rate)
         rate = self.call_limit
 
-        for i in range(0, len(params)+1, rate):
+        for i in range(0, len(params), rate):
             batch = params[i:i + rate]
             with ThreadPoolExecutor() as executor:
                 results = list(executor.map(_handle_calls, batch))
-                successes.extend([response for response in results if "Error" not in response])
-                errors.extend([response for response in results if "Error" in response])
-                time.sleep(self.call_time)
-        return {"response" : successes,
-                "count" : total_count,
-                "returned_count" : len(successes),
-                "errors" : errors}
+            
+            for res in results:
+                if "Error" in res:
+                    errors.append(res)
+                else:
+                    successes.append(res)
+
+            # Sleep between batches to respect rate limits
+            time.sleep(self.call_time)
+
+        return {
+            "response": successes,
+            "count": total_count,
+            "returned_count": len(successes),
+            "errors": errors
+        }
 
     def get_call_api(self, func : str, params : dict = {}) -> dict:
         """Call provided endpoint with provided parameters
@@ -188,9 +205,17 @@ class ContactSpace():
             Checks._type_check(_handle_pagination, locals())
             local_params = params.copy()
             local_params["page"] = str(page_num)
-            res = session.post(url, headers=header, params=local_params).json()
+            with reqs.Session() as session:
+                try:
+                    response = session.post(url, headers=header, params=local_params, timeout=self.timeout)
+                    response.raise_for_status()
+                    res_json = response.json()
+                except Exception as ex:
+                    return {"Error": f"Request failed: {ex}"}
             
-            return res.get(data_key, {"Error" : res, "params" : local_params})
+            return res_json.get(data_key, {
+                "Error": f"No 'info' key in response. Params: {local_params}, Full response: {res_json}"
+            })
             
         
         def _batches(start : int, end : int, batch_size : int) -> list:
@@ -398,6 +423,8 @@ class ContactSpace():
         if bool(callback) and bool(userid):
             func = "InsertRecordWithCallback"
             Checks._date_format_check(callback)
+
+        data = data.astype(str)
                 
         records = data.to_dict(orient='records')
 
@@ -479,7 +506,7 @@ class ContactSpace():
                   "module" : "data"}
         total_count = len(callids)
 
-        def _handle_multiplerecords(callid : int) -> dict:
+        def _handle_multiplerecords(callid : str) -> dict:
             """Handle batching multiple callids
 
             Args:
@@ -488,11 +515,18 @@ class ContactSpace():
             Returns:
                 the records key value pair from the json
             """
+
             Checks._type_check(_handle_multiplerecords, locals())
-            params["callid"] = str(callid)
-            res = session.post(url, headers=header, params=params).json()
-            records = res.get("records", {"Error" : str(callid)})
-            return records
+            local_params = params.copy()
+            local_params["callid"] = str(callid)
+            with reqs.Session() as session:
+                try:
+                    response = session.post(url, headers=header, params=local_params, timeout=self.timeout)
+                    response.raise_for_status()
+                    res_json = response.json()
+                except Exception as ex:
+                    return {"Error": f"Request failed: {ex}"}
+            return res_json.get("records", {"Error" : str(callid)})
 
         rate = self.call_limit
         successes = []

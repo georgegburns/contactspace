@@ -10,7 +10,7 @@ GitHub: https://github.com/georgegburns/contactspace
 
 Installed via pip:
 
-    pip install contactspace
+    pip install contact-space
 
 
 # Features

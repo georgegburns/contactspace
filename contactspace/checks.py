@@ -1,5 +1,6 @@
 
 from datetime import datetime
+from dateutil import parser
 import inspect
 import requests as reqs
 from contactspace.exceptions import InvalidDateRangeException, NotEqualSizeException
@@ -29,24 +30,17 @@ class Checks():
         if not isinstance(date_val, str):
             datetime.strftime(date_val, date_format="%Y-%m-%d %H:%M:%S")
         try:
-            datetime.strptime(date_val, "%Y-%m-%d %H:%M:%S")
+            parser.parse(date_val)
         except ValueError:
-            try:
-                datetime.strptime(date_val, "%Y-%m-%d")
-            except:
-                raise
+            raise
     
     @staticmethod
     def _date_order_check(date1 : str, date2 : str) -> None:
         try:
-            dt1 = datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
-            dt2 = datetime.strptime(date2, "%Y-%m-%d %H:%M:%S")
+            dt1 = parser.parse(date1)
+            dt2 = parser.parse(date2)
         except ValueError:
-            try:           
-                dt1 = datetime.strptime(date1, "%Y-%m-%d")
-                dt2 = datetime.strptime(date2, "%Y-%m-%d")
-            except:
-                raise
+            raise
 
         if dt2 < dt1:
             raise InvalidDateRangeException(date1, date2)
