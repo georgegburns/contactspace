@@ -10,7 +10,7 @@ GitHub: https://github.com/georgegburns/contactspace
 
 Installed via pip:
 
-    pip install contact_space
+    pip install contactspace
 
 
 # Features
@@ -18,7 +18,7 @@ Handles authorisation check and batches requests to meet API requirements
 
 Example authentication
 
-    from contact_space import ContactSpace
+    from contactspace import ContactSpace
     
     api_key = "EXAMPLE_API_KEY"
     url = "https://ukapithunder.makecontact.space/" # Update to region specific URL

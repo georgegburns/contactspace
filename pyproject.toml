@@ -4,8 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "contact_space"
-version = "0.1.5"
+version = "0.1.06"
 description = "SDK to interact with the ContactSpace REST API"
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.7"
 authors = [
@@ -14,7 +15,8 @@ authors = [
 
 dependencies = [
   "requests",
-  "pandas"
+  "pandas",
+  "python-dateutil"
 ]
 
 classifiers = [
