@@ -152,9 +152,10 @@ class ContactSpace():
 
         url = self.base_url + func
         header = self.auth.copy()
-        
+
         # Initial call to obtain the first page
         response = session.post(url, headers=header, params=params, timeout=self.timeout).json()
+
         if response is None:
             return {"No Data" : {func : params}}
         elif "error" in response:
@@ -564,8 +565,11 @@ class ContactSpace():
         Checks._type_check(ContactSpace.get_records, locals())
         no_pred_ids = self.get_callids(fromdate, todate, predictive=0).get("response")
         pred_ids = self.get_callids(fromdate, todate, predictive=1).get("response")
-        list_predictive = [rep_dict.get("Id") for rep_dict in no_pred_ids if "Id" in rep_dict]
-        list_non_predictive = [rep_dict.get("Id") for rep_dict in pred_ids if "Id" in rep_dict]
+        if no_pred_ids is None and pred_ids is None:
+            return None
+        
+        list_predictive = [rep_dict.get("Id") for rep_dict in pred_ids if "Id" in rep_dict]
+        list_non_predictive = [rep_dict.get("Id") for rep_dict in no_pred_ids if "Id" in rep_dict]
         list_predictive.extend(list_non_predictive)
         all_ids = list(set(list_predictive))
 
